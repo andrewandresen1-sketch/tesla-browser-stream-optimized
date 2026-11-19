@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'self'; media-src 'self' blob:; worker-src blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Tesla WebRTC stage comparison · Phase 12</title>
+<style>
+  :root{--bg:#0b0d12;--panel:#141824;--panel2:#10141e;--line:#2a3042;--text:#e9edf6;--muted:#9aa3b8;--ok:#3ddc97;--no:#ff6b6b;--warn:#ffb020;--info:#69a8ff}
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text)}
+  body{font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;padding:18px}
+  .wrap{max-width:1000px;margin:0 auto}
+  h1{font-size:26px;line-height:1.2;margin:0 0 6px}
+  h2{font-size:18px;margin:0 0 10px}
+  p{margin:0 0 10px}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 18px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin:0 0 16px}
+  .danger{border-left:6px solid var(--no);background:rgba(255,107,107,.08)}
+  .danger strong{color:var(--no)}
+  .verdict{font-size:20px;font-weight:700;line-height:1.3;margin:0 0 8px}
+  .verdict small{display:block;font-weight:400;color:var(--muted);font-size:14px;margin-top:8px}
+  .chip{display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700}
+  .chip.ok{background:rgba(61,220,151,.15);color:var(--ok)}
+  .chip.no{background:rgba(255,107,107,.15);color:var(--no)}
+  .chip.warn{background:rgba(255,176,32,.16);color:var(--warn)}
+  table{width:100%;border-collapse:collapse}
+  th,td{text-align:left;padding:8px 7px;border-bottom:1px solid var(--line);vertical-align:top;font-size:14px}
+  th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+  td.k{color:var(--muted);width:44%}
+  .mono{font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace}
+  .small{font-size:13px;color:var(--muted)}
+  label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px;font-weight:600}
+  input,select,textarea{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--text);font:15px/1.4 system-ui,sans-serif;padding:10px}
+  textarea{min-height:160px;font-family:ui-monospace,Consolas,monospace;font-size:12px;resize:vertical}
+  .row2{display:grid;grid-template-columns:1fr 1fr;grid-gap:12px}
+  .keygrid{display:grid;grid-template-columns:1fr 1fr;grid-gap:10px}
+  .keyitem{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+  .keyitem b{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:0 0 3px}
+  .keyitem span{font-size:19px;font-weight:700;word-break:break-word}
+  .keyitem span.ok{color:var(--ok)}
+  .keyitem span.no{color:var(--no)}
+  .keyitem span.warn{color:var(--warn)}
+  button{font:700 16px system-ui,sans-serif;padding:13px 16px;border-radius:10px;border:1px solid var(--line);background:#1e2536;color:var(--text);margin:0 10px 10px 0;min-width:140px}
+  button.primary{background:#243a5e;border-color:#31527f}
+  button:disabled{opacity:.45}
+  button:active{transform:translateY(1px)}
+  .check{display:flex;align-items:flex-start;grid-gap:10px;margin:10px 0}
+  .check input{width:22px;height:22px;margin-top:2px}
+  .check label{margin:0;color:var(--text);font-size:15px;font-weight:400}
+  pre{white-space:pre-wrap;word-break:break-word;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:12px;font-size:12px;margin:0;max-height:220px;overflow:auto}
+  .stage{position:relative;background:#000;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:10px 0}
+  canvas{display:block;width:100%;height:auto;background:#000}
+  .source{position:fixed;right:14px;bottom:14px;width:280px;max-width:42vw;z-index:9999;border:2px solid var(--line);border-radius:8px;background:#000;box-shadow:0 4px 24px rgba(0,0,0,.55)}
+  .overlay{position:absolute;left:10px;top:10px;background:rgba(0,0,0,.65);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:12px/1.4 ui-monospace,Consolas,monospace;color:var(--text);white-space:pre}
+  .footer{color:var(--muted);font-size:12px;line-height:1.5;margin:18px 0 8px}
+  ul{margin:0 0 8px 18px;padding:0}
+  li{margin:0 0 6px}
+  @media (max-width:760px){body{padding:12px}h1{font-size:22px}.row2,.keygrid{grid-template-columns:1fr}td.k{width:52%}button{width:100%;margin-right:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>WebRTC comparison</h1>
+  <p class="sub">Phase 12 · staged H.264 loopback: canvas capture → encode → transport → jitter → decode → processor → canvas · parked only · 10 s</p>
+
+  <div class="panel danger">
+    <strong>PARKED ONLY.</strong> This page plays the source clip natively and sends it through a local
+    RTCPeerConnection loopback. It is for a parked vehicle, operated by a passenger. It does not detect
+    or bypass driving state.
+  </div>
+
+  <noscript><div class="panel"><strong>JavaScript is disabled.</strong></div></noscript>
+
+  <div class="panel">
+    <h2>Start</h2>
+    <div class="check">
+      <input type="checkbox" id="confirm">
+      <label for="confirm">The vehicle is parked and a passenger is operating this page.</label>
+    </div>
+    <div class="row2">
+      <div>
+        <label for="preset">Resolution / target fps</label>
+        <select id="preset">
+          <option value="720p30" selected>720p @ 30 fps (1280×720)</option>
+          <option value="720p24">720p @ 24 fps (1280×720)</option>
+          <option value="540p30">540p @ 30 fps (960×540)</option>
+          <option value="360p30">360p @ 30 fps (640×360)</option>
+        </select>
+      </div>
+      <div>
+        <label for="radio">Audio condition (manual)</label>
+        <select id="radio">
+          <option value="off" selected>radio off</option>
+          <option value="on">radio on</option>
+          <option value="other">other / unknown</option>
+        </select>
+      </div>
+    </div>
+    <label for="volume">Radio volume / condition notes</label>
+    <input id="volume" placeholder="e.g. volume 3, HVAC on" autocomplete="off">
+    <button class="primary" id="startBtn" type="button" disabled>Run 10 s WebRTC test</button>
+    <button id="stopBtn" type="button" disabled>Stop</button>
+    <button id="resetBtn" type="button" onclick="location.reload()">Reset (reload)</button>
+    <p class="small" id="status">Check the box to start. The source is the same local clip; the comparison runs through a loopback peer connection.</p>
+    <div class="small mono" id="log" aria-live="polite"></div>
+  </div>
+
+  <div class="panel">
+    <div class="verdict" id="verdictLine">Not started</div>
+    <div class="small" id="verdictSub">No WebRTC session yet.</div>
+  </div>
+
+  <div class="panel">
+    <h2>Received video</h2>
+    <div class="stage">
+      <canvas id="out" width="1280" height="720"></canvas>
+      <div class="overlay" id="overlay">—</div>
+    </div>
+    <p class="small">Source (native playback, drawn into a 30 fps canvas for WebRTC):</p>
+    <video id="src" class="source" src="media/720p-h264.mp4" muted playsinline loop></video>
+    <canvas id="srcCanvas" width="1280" height="720" style="display:none"></canvas>
+    <table id="liveTable"><tbody></tbody></table>
+  </div>
+
+  <div class="panel">
+    <h2>Key values — photograph this</h2>
+    <div class="keygrid" id="keyGrid"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Vehicle details (pre-filled, edit if needed)</h2>
+    <div class="row2">
+      <div><label for="inModel">Model and year</label><input id="inModel" value="Model 3 · 2021" autocomplete="off"></div>
+      <div><label for="inSw">Tesla software version</label><input id="inSw" value="2026.38.5.11" autocomplete="off"></div>
+    </div>
+    <div class="row2">
+      <div><label for="inCpu">Infotainment processor</label><input id="inCpu" value="Intel Atom (MCU2)" autocomplete="off"></div>
+      <div><label for="inNotes">Notes (optional)</label><input id="inNotes" placeholder="e.g. browser foreground" autocomplete="off"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Final metrics</h2>
+    <table id="finalTable"><tbody></tbody></table>
+  </div>
+
+  <div class="panel">
+    <h2>Export the result</h2>
+    <p class="small">The only network request is the source clip. The peer connection is loopback, not a network server.</p>
+    <button class="primary" id="btnCopy" type="button">Copy JSON</button>
+    <button id="btnDownload" type="button">Download JSON</button>
+    <button id="btnSelect" type="button">Select all</button>
+    <div class="small" id="copyStatus" aria-live="polite"></div>
+    <label for="jsonOut">JSON result</label>
+    <textarea id="jsonOut" readonly spellcheck="false"></textarea>
+    <label for="shortOut">Short code</label>
+    <pre id="shortOut" class="mono">—</pre>
+  </div>
+
+  <div class="panel">
+    <h2>What this does and does not test</h2>
+    <ul>
+      <li><strong>Tests:</strong> H.264 negotiation, loopback transport, jitter buffer, receive/decode statistics, frame pacing and canvas presentation for 10 s.</li>
+      <li><strong>Does not test:</strong> a real network path, packet loss, congestion, TURN, or adaptive bitrate. Loopback is lossless and local.</li>
+      <li>It uses the same source clip as the WebCodecs player so the decode target is equivalent.</li>
+      <li>It does not request camera, microphone, location or vehicle permissions.</li>
+    </ul>
+  </div>
+
+  <div class="footer"><span class="mono">phase12-1</span> · <a href="index.html" style="color:var(--info)">WebCodecs player</a> · sample media generated locally.</div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var PAGE_VERSION = "phase12-1";
+  var RUN_MS = 10000;
+  var PRESETS = {
+    "720p30": { w: 1280, h: 720, fps: 30 },
+    "720p24": { w: 1280, h: 720, fps: 24 },
+    "540p30": { w: 960, h: 540, fps: 30 },
+    "360p30": { w: 640, h: 360, fps: 30 }
+  };
+  var pc1 = null, pc2 = null, source = null, reader = null, processor = null;
+  var session = null, result = null, done = false, stopped = false;
+  var captureTrack = null, preset = PRESETS["720p30"], presetKey = "720p30";
+  var sourceRaf = 0, sampler = 0;
+  var stamps = [], firstAt = 0, startedAt = 0, sourceStartedAt = 0;
+  var statsBefore = null, statsAfter = null;
+  var sourceBefore = null, sourceAfter = null;
+  var samples = [];
+  var drawCosts = [], drawIntervals = [], lastDrawAt = 0, drawCount = 0;
+  var readIntervals = [], lastReadAt = 0, readCount = 0;
+  var renderCosts = [], renderCount = 0;
+  var readStartedAt = 0;
+  var errors = [];
+  var $ = function (id) { return document.getElementById(id); };
+  function now() { return performance.now(); }
+  function log(m) {
+    var el = $("log");
+    el.textContent = (el.textContent ? el.textContent + "\n" : "") + "[" + new Date().toISOString().slice(11, 19) + "] " + m;
+    el.scrollTop = el.scrollHeight;
+  }
+  function percentile(values, p) {
+    if (!values.length) return null;
+    var v = values.slice().sort(function (a, b) { return a - b; });
+    var i = Math.min(v.length - 1, Math.max(0, Math.ceil((p / 100) * v.length) - 1));
+    return +v[i].toFixed(3);
+  }
+  function parseUA(ua) {
+    var m = /(?:HeadlessChrome|Chromium|Chrome)\/(\d+)/.exec(ua || "");
+    return { major: m ? parseInt(m[1], 10) : null };
+  }
+  function inputs() {
+    return {
+      model_and_year: $("inModel").value,
+      software_version: $("inSw").value,
+      processor: $("inCpu").value,
+      notes: $("inNotes").value,
+      radio: $("radio").value,
+      radio_volume_or_notes: $("volume").value
+    };
+  }
+  function row(table, k, v) {
+    var tr = document.createElement("tr");
+    var a = document.createElement("td"); a.className = "k"; a.textContent = k;
+    var b = document.createElement("td"); b.className = "v mono"; b.textContent = v;
+    tr.appendChild(a); tr.appendChild(b);
+    table.getElementsByTagName("tbody")[0].appendChild(tr);
+  }
+  function clear(table) {
+    var tb = table.getElementsByTagName("tbody")[0];
+    while (tb.firstChild) tb.removeChild(tb.firstChild);
+  }
+  function keyItem(label, value, status) {
+    var d = document.createElement("div"); d.className = "keyitem";
+    var b = document.createElement("b"); b.textContent = label;
+    var s = document.createElement("span"); s.textContent = value;
+    if (status) s.className = status;
+    d.appendChild(b); d.appendChild(s);
+    $("keyGrid").appendChild(d);
+  }
+
+  function codecFromSdp(sdp) {
+    var m = /a=rtpmap:\d+\s+(H264|VP8|VP9|AV1)\/90000/i.exec(sdp || "");
+    return m ? m[1].toUpperCase() : null;
+  }
+
+  function pickVideo(report, type) {
+    var out = null;
+    report.forEach(function (s) {
+      if (s.type === type && (s.kind === "video" || s.mediaType === "video")) out = s;
+    });
+    return out;
+  }
+  async function getInbound() {
+    if (!pc2) return null;
+    return pickVideo(await pc2.getStats(), "inbound-rtp");
+  }
+  async function snapshotStats() {
+    var snap = { t_ms: startedAt ? Math.round(now() - startedAt) : 0 };
+    try {
+      if (pc1) {
+        var r1 = await pc1.getStats();
+        snap.outbound = pickVideo(r1, "outbound-rtp");
+        snap.remote_inbound = pickVideo(r1, "remote-inbound-rtp");
+        var ms = null;
+        r1.forEach(function (s) {
+          // media-source describes what the canvas capture is actually producing.
+          if (s.type === "media-source" && (s.kind === "video" || s.mediaType === "video")) ms = s;
+        });
+        snap.media_source = ms;
+      }
+    } catch (e) { snap.error1 = String(e && e.message || e); }
+    try {
+      if (pc2) {
+        var r2 = await pc2.getStats();
+        snap.inbound = pickVideo(r2, "inbound-rtp");
+        snap.remote_outbound = pickVideo(r2, "remote-outbound-rtp");
+      }
+    } catch (e) { snap.error2 = String(e && e.message || e); }
+    return snap;
+  }
+  function startSampler() {
+    if (sampler) return;
+    sampler = setInterval(function () {
+      if (stopped) return;
+      snapshotStats().then(function (s) { if (samples.length < 240) samples.push(s); }).catch(function () {});
+    }, 500);
+  }
+
+  function delta(a, b, key) {
+    if (!a || !b) return null;
+    var x = b[key], y = a[key];
+    return (typeof x === "number" && typeof y === "number") ? x - y : null;
+  }
+  function locateBottleneck(stages, outbound) {
+    var target = preset.fps;
+    var reasons = [];
+    function flag(stage, fps, ref, refName) {
+      if (fps == null || ref == null || ref <= 0) return;
+      if (fps < ref * 0.9) reasons.push({ stage: stage, fps: +fps.toFixed(2), reference: +ref.toFixed(2), reference_stage: refName });
+    }
+    flag("canvas-capture", stages.capture.fps, target, "target");
+    flag("encode", stages.encode.fps, stages.capture.fps, "capture");
+    flag("transport", stages.transport.receive_fps, stages.transport.sent_fps, "send");
+    flag("decode", stages.decode.fps, stages.transport.receive_fps, "receive");
+    flag("presentation", stages.present.fps, stages.decode.fps, "decode");
+    var q = outbound && outbound.qualityLimitationReason;
+    if (q && q !== "none") {
+      reasons.push({ stage: "quality-limitation", reason: q, durations: outbound.qualityLimitationDurations || null });
+    }
+    return {
+      primary: reasons.length ? reasons[0].stage : "none",
+      reasons: reasons,
+      note: reasons.length
+        ? "Stage-limited: " + reasons.map(function (r) { return r.stage; }).join(", ")
+        : "No stage below 90% of its upstream stage"
+    };
+  }
+
+  function rate(count, wall) {
+    return count != null && wall > 0 ? +((count / (wall / 1000))).toFixed(2) : null;
+  }
+  function num(x) { return typeof x === "number" && isFinite(x) ? x : null; }
+  function ratioPct(part, whole) {
+    if (part == null || whole == null || !whole) return null;
+    return +((part / whole) * 100).toFixed(1);
+  }
+  function msPer(total, count) {
+    return total != null && count ? +((total / count) * 1000).toFixed(2) : null;
+  }
+
+  async function finalize() {
+    if (done) return;
+    done = true;
+    stopped = true;
+    if (sampler) { clearInterval(sampler); sampler = 0; }
+    var connState = pc1 ? pc1.connectionState : null;
+    var iceState = pc1 ? pc1.iceConnectionState : null;
+    try { if (reader) await reader.cancel(); } catch (e) {}
+    statsAfter = await snapshotStats().catch(function () { return null; });
+    var senderParams = null;
+    try {
+      senderParams = pc1 && pc1.getSenders()[0] ? pc1.getSenders()[0].getParameters() : null;
+    } catch (e) {}
+    var captureSettings = captureTrack && captureTrack.getSettings ? captureTrack.getSettings() : null;
+    sourceAfter = source && source.getVideoPlaybackQuality ? source.getVideoPlaybackQuality() : null;
+    try { if (pc1) pc1.close(); } catch (e) {}
+    try { if (pc2) pc2.close(); } catch (e) {}
+    try { if (sourceRaf) cancelAnimationFrame(sourceRaf); } catch (e) {}
+    try { source.pause(); source.style.display = "none"; } catch (e) {}
+
+    var wall = startedAt ? now() - startedAt : 0;
+    var gaps = [];
+    for (var i = 1; i < stamps.length; i++) gaps.push(stamps[i] - stamps[i - 1]);
+    var span = stamps.length > 1 ? stamps[stamps.length - 1] - stamps[0] : 0;
+    var frames = statsAfter && statsAfter.inbound ? num(statsAfter.inbound.framesDecoded) : null;
+    var received = statsAfter && statsAfter.inbound ? num(statsAfter.inbound.framesReceived) : null;
+    var dropped = statsAfter && statsAfter.inbound ? num(statsAfter.inbound.framesDropped) : null;
+    var jbDelay = statsAfter && statsAfter.inbound ? num(statsAfter.inbound.jitterBufferDelay) : null;
+    var jbCount = statsAfter && statsAfter.inbound ? num(statsAfter.inbound.jitterBufferEmittedCount) : null;
+    var decodeTime = statsAfter && statsAfter.inbound ? num(statsAfter.inbound.totalDecodeTime) : null;
+    var procDelay = statsAfter && statsAfter.inbound ? num(statsAfter.inbound.totalProcessingDelay) : null;
+    var bytes = statsAfter && statsAfter.inbound ? num(statsAfter.inbound.bytesReceived) : null;
+    var packets = statsAfter && statsAfter.inbound ? num(statsAfter.inbound.packetsReceived) : null;
+    var lost = statsAfter && statsAfter.inbound ? num(statsAfter.inbound.packetsLost) : null;
+    var sdp = (pc2 && pc2.remoteDescription && pc2.remoteDescription.sdp) || "";
+    var codec = codecFromSdp(sdp);
+    var sdpVideo = /m=video[\s\S]*?a=rtpmap:\d+\s+(\S+)\/90000/i.exec(sdp);
+    var sourceQuality = sourceAfter && sourceBefore ? {
+      total: Math.max(0, sourceAfter.totalVideoFrames - sourceBefore.totalVideoFrames),
+      dropped: Math.max(0, sourceAfter.droppedVideoFrames - sourceBefore.droppedVideoFrames)
+    } : { total: null, dropped: null };
+
+    // ---- per-stage deltas: capture -> encode -> transport -> jitter -> decode -> processor -> canvas
+    var outA = (statsAfter && statsAfter.outbound) || {};
+    var inA = (statsAfter && statsAfter.inbound) || {};
+    var msA = (statsAfter && statsAfter.media_source) || {};
+    var remA = (statsAfter && statsAfter.remote_inbound) || {};
+
+    // Each run creates a fresh RTCPeerConnection, so its cumulative counters
+    // are the run totals. Delta-vs-a-before-snapshot was wrong: inbound-rtp
+    // does not exist until the first frame arrives, which made decode and
+    // jitter null on every preset.
+    var framesEncoded = num(outA.framesEncoded);
+    var totalEncodeTime = num(outA.totalEncodeTime);
+    var framesSent = num(outA.framesSent);
+    var bytesSent = num(outA.bytesSent);
+    var packetsSent = num(outA.packetsSent);
+    var retransmitted = num(outA.retransmittedPacketsSent);
+    var nackSent = num(outA.nackCount);
+    var framesReceived = num(inA.framesReceived);
+    var framesDecoded = num(inA.framesDecoded);
+    var jbDelayD = num(inA.jitterBufferDelay);
+    var jbCountD = num(inA.jitterBufferEmittedCount);
+    var decodeTimeD = num(inA.totalDecodeTime);
+    var assemblyD = num(inA.totalAssemblyTime);
+    var concealmentD = num(inA.concealmentEvents);
+    var insertedD = num(inA.insertedSamplesForDeceleration);
+    var removedD = num(inA.removedSamplesForAcceleration);
+
+    var captureFps = num(msA.framesPerSecond);
+    var captureFrames = num(msA.frames);
+    if ((captureFps == null || captureFps === 0) && captureFrames != null && wall > 0) {
+      captureFps = +((captureFrames / (wall / 1000))).toFixed(2);
+    }
+    if (captureFps === 0) captureFps = null;
+    var srcFps = sourceQuality.total != null && wall > 0 ? +((sourceQuality.total / (wall / 1000))).toFixed(2) : null;
+    var drawFps = drawIntervals.length ? +((drawIntervals.length / (drawIntervals.reduce(function (a, b) { return a + b; }, 0) / 1000))).toFixed(2) : null;
+    var encodeFps = rate(framesEncoded, wall);
+    var sentFps = rate(framesSent, wall);
+    var receiveFps = rate(framesReceived, wall);
+    var decodeFps = rate(framesDecoded, wall);
+    var presentFps = span > 0 ? +(((stamps.length - 1) / span) * 1000).toFixed(2) : 0;
+    var readSpan = stamps.length > 1 ? stamps[stamps.length - 1] - stamps[0] : 0;
+    var processorFps = readSpan > 0 ? +(((stamps.length - 1) / readSpan) * 1000).toFixed(2) : 0;
+
+    var stages = {
+      source: { fps: srcFps, frames: sourceQuality.total, dropped: sourceQuality.dropped },
+      draw: {
+        fps: drawFps,
+        draws: drawCount,
+        p50_ms: percentile(drawCosts, 50),
+        p95_ms: percentile(drawCosts, 95),
+        max_ms: drawCosts.length ? +Math.max.apply(null, drawCosts).toFixed(2) : null,
+        p50_interval_ms: percentile(drawIntervals, 50),
+        p95_interval_ms: percentile(drawIntervals, 95)
+      },
+      capture: {
+        fps: captureFps,
+        width: num(msA.width) || num(captureSettings && captureSettings.width) || null,
+        height: num(msA.height) || num(captureSettings && captureSettings.height) || null,
+        settings: captureSettings
+      },
+      encode: {
+        fps: encodeFps,
+        frames: framesEncoded,
+        key_frames: num(outA.keyFramesEncoded),
+        total_ms: totalEncodeTime == null ? null : +(totalEncodeTime * 1000).toFixed(1),
+        ms_per_frame: msPer(totalEncodeTime, framesEncoded),
+        implementation: outA.encoderImplementation || null,
+        quality_limitation_reason: outA.qualityLimitationReason || null,
+        quality_limitation_durations: outA.qualityLimitationDurations || null,
+        target_bitrate: num(outA.targetBitrate),
+        reported_fps: num(outA.framesPerSecond)
+      },
+      transport: {
+        sent_fps: sentFps,
+        receive_fps: receiveFps,
+        frames_sent: framesSent,
+        bitrate_bps: bytesSent != null && wall > 0 ? Math.round((bytesSent * 8) / (wall / 1000)) : null,
+        packets_sent: packetsSent,
+        retransmitted_packets: retransmitted,
+        nack_count: nackSent,
+        rtt_ms: remA.roundTripTime != null ? +(remA.roundTripTime * 1000).toFixed(2) : null,
+        fraction_lost: num(remA.fractionLost),
+        remote_packets_lost: num(remA.packetsLost),
+        remote_jitter_ms: remA.jitter != null ? +(remA.jitter * 1000).toFixed(2) : null
+      },
+      jitter: {
+        delay_ms: jbCountD ? +((jbDelayD / jbCountD) * 1000).toFixed(2) : null,
+        target_delay_ms: num(inA.jitterBufferTargetDelay) != null ? +((inA.jitterBufferTargetDelay * 1000)).toFixed(0) : null,
+        emitted: jbCountD,
+        jitter_ms: inA.jitter != null ? +(inA.jitter * 1000).toFixed(2) : null
+      },
+      decode: {
+        fps: decodeFps,
+        frames: framesDecoded,
+        received: framesReceived,
+        dropped: num(inA.framesDropped),
+        total_ms: decodeTimeD == null ? null : +(decodeTimeD * 1000).toFixed(1),
+        ms_per_frame: msPer(decodeTimeD, framesDecoded),
+        assembly_ms_per_frame: msPer(assemblyD, framesDecoded),
+        implementation: inA.decoderImplementation || null,
+        width: num(inA.frameWidth),
+        height: num(inA.frameHeight),
+        concealment_events: concealmentD,
+        inserted_samples: insertedD,
+        removed_samples: removedD
+      },
+      processor: {
+        fps: processorFps,
+        frames: readCount,
+        p50_interval_ms: percentile(readIntervals, 50),
+        p95_interval_ms: percentile(readIntervals, 95),
+        max_interval_ms: readIntervals.length ? +Math.max.apply(null, readIntervals).toFixed(1) : null
+      },
+      present: {
+        fps: presentFps,
+        frames: stamps.length,
+        p50_interval_ms: percentile(gaps, 50),
+        p95_interval_ms: percentile(gaps, 95),
+        max_interval_ms: gaps.length ? +Math.max.apply(null, gaps).toFixed(1) : null,
+        p50_draw_ms: percentile(renderCosts, 50),
+        p95_draw_ms: percentile(renderCosts, 95)
+      },
+      losses_pct: {
+        capture_vs_source: ratioPct(captureFps, srcFps),
+        encode_vs_capture: ratioPct(encodeFps, captureFps),
+        receive_vs_send: ratioPct(receiveFps, sentFps),
+        decode_vs_receive: ratioPct(decodeFps, receiveFps),
+        present_vs_decode: ratioPct(presentFps, decodeFps)
+      }
+    };
+    stages.bottleneck = locateBottleneck(stages, outA);
+
+    var timeline = samples.map(function (s) {
+      var o = s.outbound || {}, ii = s.inbound || {}, ms = s.media_source || {};
+      return {
+        t_ms: s.t_ms,
+        capture_fps: num(ms.framesPerSecond),
+        encode_fps: num(o.framesPerSecond),
+        decode_fps: num(ii.framesPerSecond),
+        jitter_ms: ii.jitter != null ? +(ii.jitter * 1000).toFixed(2) : null,
+        qlr: o.qualityLimitationReason || null,
+        bitrate_bps: num(o.targetBitrate),
+        packets_lost: num(ii.packetsLost)
+      };
+    });
+
+    var r = {
+      schema: "tesla-webrtc12-diagnostic/v1",
+      page_version: PAGE_VERSION,
+      started_at: new Date(Date.now() - wall).toISOString(),
+      finished_at: new Date().toISOString(),
+      inputs: inputs(),
+      preset: { key: presetKey, width: preset.w, height: preset.h, target_fps: preset.fps },
+      browser: {
+        user_agent: navigator.userAgent,
+        chromium_major: parseUA(navigator.userAgent).major,
+        hardware_concurrency: navigator.hardwareConcurrency || null,
+        device_memory_gb: typeof navigator.deviceMemory === "number" ? navigator.deviceMemory : null,
+        secure_context: window.isSecureContext === true
+      },
+      source: {
+        url: "media/720p-h264.mp4",
+        width: source.videoWidth,
+        height: source.videoHeight,
+        duration_s: +source.duration.toFixed(2),
+        native_fps: srcFps,
+        native_dropped: sourceQuality.dropped
+      },
+      negotiation: {
+        codec: codec,
+        sdp_video: sdpVideo ? sdpVideo[1] : null,
+        connection_state: connState,
+        ice_state: iceState,
+        sdp_codec_line: codec ? codec + "/90000" : null
+      },
+      capture: captureSettings,
+      sender: {
+        encodings: senderParams ? senderParams.encodings : null,
+        frames_encoded: stages.encode.frames,
+        frames_per_second: stages.encode.reported_fps,
+        target_bitrate: stages.encode.target_bitrate
+      },
+      stages: stages,
+      run: {
+        duration_ms: +wall.toFixed(1),
+        presented: stamps.length,
+        fps: presentFps,
+        present_fps: presentFps,
+        capture_fps: captureFps,
+        encode_fps: encodeFps,
+        sent_fps: sentFps,
+        receive_fps: receiveFps,
+        decode_fps: decodeFps,
+        startup_ms: firstAt ? +(firstAt - sourceStartedAt).toFixed(1) : null,
+        interval_p50_ms: stages.present.p50_interval_ms,
+        interval_p95_ms: stages.present.p95_interval_ms,
+        interval_max_ms: stages.present.max_interval_ms,
+        frames_decoded: framesDecoded != null ? framesDecoded : frames,
+        frames_received: framesReceived != null ? framesReceived : received,
+        frames_dropped: num(inA.framesDropped) != null ? num(inA.framesDropped) : dropped,
+        jitter_buffer_ms: stages.jitter.delay_ms,
+        jitter_buffer_target_ms: stages.jitter.target_delay_ms,
+        decode_ms: stages.decode.ms_per_frame,
+        processing_ms: msPer(procDelay, frames),
+        assembly_ms: stages.decode.assembly_ms_per_frame,
+        bitrate_bps: stages.transport.bitrate_bps,
+        packets_received: packets,
+        packets_lost: lost,
+        quality_limitation_reason: stages.encode.quality_limitation_reason,
+        frame_width: stages.decode.width,
+        frame_height: stages.decode.height
+      },
+      timeline: timeline,
+      verdict: null,
+      errors: errors
+    };
+    r.verdict = {
+      classification: r.negotiation.codec === "H264" && r.run.fps >= 24 ? "h264-real-time" : "measured",
+      bottleneck: stages.bottleneck.primary,
+      summary: (codec || "codec?") + " · " + r.run.fps + " fps · " + r.run.presented + " presented · " +
+        (r.run.frames_dropped == null ? "?" : r.run.frames_dropped) + " dropped · jitter " +
+        (r.run.jitter_buffer_ms == null ? "?" : r.run.jitter_buffer_ms + " ms") + " · bottleneck " +
+        stages.bottleneck.primary
+    };
+    result = r;
+    window.__webrtcResult = r;
+    window.__webrtcDone = true;
+    $("verdictLine").textContent = r.verdict.summary;
+    $("verdictSub").textContent = r.verdict.classification + " · " + r.preset.key + " · source " + r.source.width + "×" + r.source.height + " · " + r.run.duration_ms + " ms";
+    clear($("finalTable"));
+    row($("finalTable"), "Preset / encoded size", r.preset.key + " · " + (r.run.frame_width || "?") + "×" + (r.run.frame_height || "?"));
+    row($("finalTable"), "Negotiated codec", r.negotiation.codec || "unknown");
+    row($("finalTable"), "Presented / decoded", r.run.presented + " / " + r.run.frames_decoded);
+    row($("finalTable"), "Dropped / lost packets", r.run.frames_dropped + " / " + r.run.packets_lost);
+    row($("finalTable"), "Presentation fps", r.run.fps);
+    row($("finalTable"), "Stage fps cap → enc → send → recv → dec → present",
+      (r.stages.capture.fps == null ? "?" : r.stages.capture.fps) + " → " + (r.run.encode_fps == null ? "?" : r.run.encode_fps) + " → " +
+      (r.run.sent_fps == null ? "?" : r.run.sent_fps) + " → " + (r.run.receive_fps == null ? "?" : r.run.receive_fps) + " → " +
+      (r.run.decode_fps == null ? "?" : r.run.decode_fps) + " → " + r.run.present_fps);
+    row($("finalTable"), "Stage losses % (cap/enc/recv/dec/pres)", [
+      r.stages.losses_pct.capture_vs_source,
+      r.stages.losses_pct.encode_vs_capture,
+      r.stages.losses_pct.receive_vs_send,
+      r.stages.losses_pct.decode_vs_receive,
+      r.stages.losses_pct.present_vs_decode
+    ].map(function (v) { return v == null ? "?" : v; }).join(" / "));
+    row($("finalTable"), "Encoder / decoder", (r.stages.encode.implementation || "?") + " / " + (r.stages.decode.implementation || "?"));
+    row($("finalTable"), "Encode / decode ms per frame", (r.stages.encode.ms_per_frame == null ? "?" : r.stages.encode.ms_per_frame) + " / " + (r.stages.decode.ms_per_frame == null ? "?" : r.stages.decode.ms_per_frame));
+    row($("finalTable"), "Frame interval p50 / p95", r.run.interval_p50_ms + " / " + r.run.interval_p95_ms + " ms");
+    row($("finalTable"), "Canvas draw p50 / p95", (r.stages.draw.p50_ms == null ? "?" : r.stages.draw.p50_ms) + " / " + (r.stages.draw.p95_ms == null ? "?" : r.stages.draw.p95_ms) + " ms");
+    row($("finalTable"), "Jitter buffer / decode", r.run.jitter_buffer_ms + " / " + r.run.decode_ms + " ms");
+    row($("finalTable"), "Quality limitation", (r.run.quality_limitation_reason || "none") + " · " + (r.stages.bottleneck.primary));
+    row($("finalTable"), "Bitrate", r.run.bitrate_bps + " bps");
+    row($("finalTable"), "RTT / remote jitter", (r.stages.transport.rtt_ms == null ? "?" : r.stages.transport.rtt_ms) + " / " + (r.stages.transport.remote_jitter_ms == null ? "?" : r.stages.transport.remote_jitter_ms) + " ms");
+    row($("finalTable"), "Startup", r.run.startup_ms + " ms");
+    row($("finalTable"), "Bottleneck detail", r.stages.bottleneck.note);
+    var g = $("keyGrid"); while (g.firstChild) g.removeChild(g.firstChild);
+    keyItem("Codec", r.negotiation.codec || "?", r.negotiation.codec === "H264" ? "ok" : "warn");
+    keyItem("Presented fps", String(r.run.fps), r.run.fps >= preset.fps * 0.9 ? "ok" : "warn");
+    keyItem("Presented", String(r.run.presented), "ok");
+    keyItem("Dropped", String(r.run.frames_dropped), r.run.frames_dropped <= 5 ? "ok" : "warn");
+    keyItem("Bottleneck", r.stages.bottleneck.primary, r.stages.bottleneck.primary === "none" ? "ok" : "warn");
+    keyItem("Jitter buffer", (r.run.jitter_buffer_ms == null ? "—" : r.run.jitter_buffer_ms + " ms"), "ok");
+    keyItem("Decode", (r.run.decode_ms == null ? "—" : r.run.decode_ms + " ms"), "ok");
+    keyItem("Bitrate", (r.run.bitrate_bps == null ? "—" : Math.round(r.run.bitrate_bps / 1000) + " kbps"), "ok");
+    keyItem("Radio", (r.inputs.radio || "unknown"), "ok");
+    keyItem("Chromium", String(r.browser.chromium_major), "ok");
+    $("jsonOut").value = JSON.stringify(r, null, 2);
+    $("shortOut").textContent = "T12W|preset=" + r.preset.key + "|codec=" + (r.negotiation.codec || "?") + "|fps=" + r.run.fps +
+      "|cap=" + r.stages.capture.fps + "|enc=" + r.run.encode_fps + "|recv=" + r.run.receive_fps + "|dec=" + r.run.decode_fps +
+      "|pres=" + r.run.presented + "|drop=" + r.run.frames_dropped + "|jit=" + r.run.jitter_buffer_ms +
+      "|dms=" + r.run.decode_ms + "|br=" + r.run.bitrate_bps + "|bn=" + r.stages.bottleneck.primary + "|radio=" + (r.inputs.radio || "?");
+    $("startBtn").disabled = true;
+    $("stopBtn").disabled = true;
+    $("status").textContent = "Finished. Press Reset (reload) for a new run.";
+  }
+
+  async function run() {
+    if (done || session) return;
+    if (!$("confirm").checked) { $("status").textContent = "Confirm the parked checkbox first."; return; }
+    presetKey = $("preset").value;
+    preset = PRESETS[presetKey] || PRESETS["720p30"];
+    $("preset").disabled = true; $("radio").disabled = true; $("volume").disabled = true;
+    session = true; done = false; stopped = false; stamps = []; firstAt = 0;
+    samples = []; drawCosts = []; drawIntervals = []; readIntervals = []; renderCosts = [];
+    lastDrawAt = 0; lastReadAt = 0; drawCount = 0; readCount = 0; renderCount = 0; errors = [];
+    startedAt = now();
+    $("startBtn").disabled = true; $("stopBtn").disabled = false;
+    $("status").textContent = "Starting " + presetKey + " source playback and loopback negotiation…";
+    try {
+      source = $("src");
+      await source.play();
+      sourceStartedAt = now();
+      sourceBefore = source.getVideoPlaybackQuality ? source.getVideoPlaybackQuality() : null;
+
+      var sc = $("srcCanvas");
+      sc.width = preset.w; sc.height = preset.h;
+      var out = $("out");
+      out.width = preset.w; out.height = preset.h;
+      var sctx = sc.getContext("2d", { alpha: false });
+      var draw = function () {
+        var t = now();
+        // Draw at the display cadence and let captureStream(target) sample it.
+        // A wall-clock gate is wrong when the refresh rate is not a multiple of
+        // the target: a 50 Hz rAF with a 30 fps gate can only land on 25 fps.
+        var d0 = now();
+        try { sctx.drawImage(source, 0, 0, preset.w, preset.h); }
+        catch (e) { if (errors.length < 20) errors.push("draw: " + ((e && e.message) || e)); }
+        drawCosts.push(+(now() - d0).toFixed(3));
+        if (lastDrawAt) drawIntervals.push(+(t - lastDrawAt).toFixed(2));
+        lastDrawAt = t;
+        drawCount++;
+        if (!stopped) sourceRaf = requestAnimationFrame(draw);
+      };
+      sourceRaf = requestAnimationFrame(draw);
+      var stream = sc.captureStream(preset.fps);
+      var track = stream.getVideoTracks()[0];
+      captureTrack = track;
+      if (!track) throw new Error("captureStream produced no video track");
+
+      pc1 = new RTCPeerConnection();
+      pc2 = new RTCPeerConnection();
+      pc1.onicecandidate = function (e) { if (e.candidate) pc2.addIceCandidate(e.candidate).catch(function () {}); };
+      pc2.onicecandidate = function (e) { if (e.candidate) pc1.addIceCandidate(e.candidate).catch(function () {}); };
+
+      var transceiver = pc1.addTransceiver(track, { direction: "sendonly", streams: [stream] });
+      try {
+        var caps = RTCRtpSender.getCapabilities("video");
+        var h264 = caps.codecs.filter(function (c) { return /^video\/H264$/i.test(c.mimeType); });
+        if (h264.length) transceiver.setCodecPreferences(h264);
+      } catch (e) { log("codec preference failed: " + e.message); }
+
+      pc2.ontrack = function (e) { startReading(e.track); };
+      var offer = await pc1.createOffer();
+      await pc1.setLocalDescription(offer);
+      await pc2.setRemoteDescription(offer);
+      var answer = await pc2.createAnswer();
+      await pc2.setLocalDescription(answer);
+      await pc1.setRemoteDescription(answer);
+      log("negotiated · " + (codecFromSdp(pc2.remoteDescription.sdp) || "codec?") + " · " + presetKey);
+      statsBefore = await snapshotStats();
+      startSampler();
+      // Safety net: if the reader never completes, still produce a result.
+      setTimeout(function () { if (!done && firstAt) finalize(); }, RUN_MS + 8000);
+    } catch (e) {
+      errors.push(String((e && e.message) || e));
+      $("status").textContent = "Failed: " + ((e && e.message) || e);
+      log("failed: " + ((e && e.stack) || e));
+    }
+  }
+
+  async function startReading(track) {
+    try {
+      readStartedAt = now();
+      var ctx = $("out").getContext("2d", { alpha: false });
+      processor = new MediaStreamTrackProcessor({ track: track });
+      reader = processor.readable.getReader();
+      while (!stopped) {
+        var r = await reader.read();
+        if (r.done) break;
+        var frame = r.value;
+        if (!frame) continue;
+        var t = now();
+        if (!firstAt) firstAt = t;
+        if (lastReadAt) readIntervals.push(+(t - lastReadAt).toFixed(2));
+        lastReadAt = t;
+        readCount++;
+        stamps.push(t);
+        var d0 = now();
+        try { ctx.drawImage(frame, 0, 0, preset.w, preset.h); }
+        catch (e) { if (errors.length < 20) errors.push("render: " + ((e && e.message) || e)); }
+        renderCosts.push(+(now() - d0).toFixed(3));
+        renderCount++;
+        try { frame.close(); } catch (e) {}
+        $("overlay").textContent = "frames " + stamps.length + "\n" + (firstAt ? ((stamps.length - 1) / ((t - firstAt) / 1000)).toFixed(1) : "0") + " fps\n" + presetKey;
+        if (t - readStartedAt >= RUN_MS) { await finalize(); break; }
+      }
+    } catch (e) {
+      log("reader: " + ((e && e.message) || e));
+      if (errors.length < 20) errors.push("reader: " + ((e && e.message) || e));
+      await finalize();
+    }
+  }
+
+  function stop() {
+    stopped = true;
+    $("status").textContent = "Stopping…";
+    finalize();
+  }
+
+  function copyJson() {
+    var text = result ? JSON.stringify(result, null, 2) : "";
+    function fb() {
+      try { var ta = $("jsonOut"); ta.focus(); ta.select(); $("copyStatus").textContent = document.execCommand("copy") ? "Copied (fallback)." : "Copy blocked."; }
+      catch (e) { $("copyStatus").textContent = "Copy blocked."; }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { $("copyStatus").textContent = "Copied " + text.length + " characters."; }, fb);
+    else fb();
+  }
+  function downloadJson() {
+    try {
+      var blob = new Blob([result ? JSON.stringify(result, null, 2) : ""], { type: "application/json" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url; a.download = "tesla-webrtc-" + new Date().toISOString().replace(/[:.]/g, "-") + ".json";
+      document.body.appendChild(a); a.click();
+      setTimeout(function () { try { document.body.removeChild(a); } catch (e) {} URL.revokeObjectURL(url); }, 1500);
+      $("copyStatus").textContent = "Download started (if allowed).";
+    } catch (e) { $("copyStatus").textContent = "Download blocked."; }
+  }
+
+  $("confirm").onchange = function () { $("startBtn").disabled = !$("confirm").checked; };
+  $("startBtn").onclick = run;
+  $("stopBtn").onclick = stop;
+  $("btnCopy").onclick = copyJson;
+  $("btnDownload").onclick = downloadJson;
+  $("btnSelect").onclick = function () { var ta = $("jsonOut"); ta.focus(); ta.select(); $("copyStatus").textContent = "Selected."; };
+  window.__webrtc = {
+    start: run,
+    stop: stop,
+    setPreset: function (k) { if (PRESETS[k]) $("preset").value = k; },
+    getPreset: function () { return presetKey; },
+    getResult: function () { return result; }
+  };
+  window.__webrtcReady = true;
+})();
+</script>
+</body>
+</html>
